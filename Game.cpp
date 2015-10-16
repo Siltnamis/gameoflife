@@ -7,15 +7,19 @@ Game::Game(int w, int h, int x, int y, int cSize, const sf::Color &oc,
     outlineColor{oc},
     liveColor{lc},
     deadColor{dc},
-    cells(x*y),
+    //cells(x*y),
     cellData(x*y, false),
     newCellData(x*y, false),
-    win(sf::VideoMode(w, h), "Game of life")
+    world{x, y},
+    win(sf::VideoMode(w, h), "Game of life"),
+    statUpdateTime{sf::Time::Zero},
+    frames{0}
 {
     //Create window
     
 
     //Place all squares and apply correct colors
+    /*
     for(int i = 0; i < dimY; ++i)
     {
         for(int j = 0; j < dimX; ++j)
@@ -27,6 +31,7 @@ Game::Game(int w, int h, int x, int y, int cSize, const sf::Color &oc,
             cells[i*dimX+j].setFillColor(deadColor);
         }
     }
+    */
 }
 
 Game::~Game()
@@ -40,21 +45,38 @@ void Game::run()
     sf::Clock clock;
     sf::Time timeSinceLastUpdate = sf::Time::Zero;
     sf::Time timePerFrame = sf::milliseconds(1000/60);
+
+    sf::Time updateTime; 
+    
     while(win.isOpen())
     {
-    //    sf::Time elapsedTime = clock.restart();
-     //   timeSinceLastUpdate += elapsedTime;
-      //  while(timeSinceLastUpdate > timePerFrame)
+        sf::Time elapsedTime = clock.restart();
+        timeSinceLastUpdate += elapsedTime;
+        while(timeSinceLastUpdate > timePerFrame)
         {
-       //     timeSinceLastUpdate -= timePerFrame;
+            timeSinceLastUpdate -= timePerFrame;
 
             getInput();
             tick(timePerFrame);
+            updateStats(timePerFrame);
         }
         perfClock.restart();
         draw();
-        std::cout << "Draw time: " << perfClock.restart().asMicroseconds() << " us\n";
+        drawTime = perfClock.restart();
     } 
+}
+
+void Game::updateStats(sf::Time t)
+{
+    statUpdateTime += t;
+    frames++;
+    if(statUpdateTime >= sf::milliseconds(1000))
+    {
+        std::cout << "FPS: " << frames << " Draw time: " << 
+            drawTime.asMicroseconds() << " us" << '\n';
+        statUpdateTime -= sf::milliseconds(1000);
+        frames = 0;
+    }
 }
 
 void Game::getInput()
@@ -74,8 +96,8 @@ void Game::getInput()
                         int x = event.mouseButton.x;
                         int y = event.mouseButton.y;
                         sf::Vector2f coords = win.mapPixelToCoords(sf::Vector2i(x, y));
-                        int xpos = coords.x/cellSize;
-                        int ypos = coords.y/cellSize;
+                        int xpos = coords.x/(cellSize+1);
+                        int ypos = coords.y/(cellSize+1);
                         if(xpos <=  dimX && ypos <= dimY && ypos >= 0 && xpos >= 0)
                         {
                             cellData[ypos*dimX+xpos] = cellData[ypos*dimX+xpos] ^ true;
@@ -139,9 +161,7 @@ void Game::tick(sf::Time t)
     {
         view.move(cameraSpeed*t.asSeconds(), 0);
     }
-    perfClock.restart();
     win.setView(view);
-    std::cout << "Set view: " << perfClock.restart().asMicroseconds() << " us\n";
 
     if(!paused)
     {
@@ -149,19 +169,20 @@ void Game::tick(sf::Time t)
         getNewCellData();
         std::cout << "GetNewCellData: " << perfClock.restart().asMicroseconds() <<
             " us\n";
-        perfClock.restart();
         cellData = newCellData;
-        std::cout << "Asignment: " << perfClock.restart().asMicroseconds() <<
-            " us\n";
     }
-    updateCells();
+    perfClock.restart();
+    world.update(cellData);
+    //std::cout << "update world: " << perfClock.restart().asMicroseconds() << 
+    //    " us\n";
 }
+
 // Paint cells depending on cellData
 void Game::updateCells()
 {
     for( int i = 0; i < cellData.size(); ++i)
     {
-        cellData[i] ? cells[i].setFillColor(liveColor) : cells[i].setFillColor(deadColor);        
+        //cellData[i] ? cells[i].setFillColor(liveColor) : cells[i].setFillColor(deadColor);        
     } 
 }
 
@@ -213,13 +234,7 @@ int Game::liveNeighbourCount(int cellIndex)
 
 void Game::draw()
 {
-        win.clear();
-
-        for(auto &cell : cells)
-        {
-            win.draw(cell);
-        }
-
+        win.clear(sf::Color{50, 50, 50});
+        win.draw(world);
         win.display();
-
 }

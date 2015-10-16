@@ -2,6 +2,7 @@
 #include <SFML/Graphics.hpp>
 #include <SFML/Window.hpp>
 #include <SFML/System.hpp>
+#include "World.h"
 #include <vector>
 
 class Game{
@@ -16,6 +17,7 @@ public:
     void updateCells();
     void getNewCellData();
     void tick(sf::Time t);
+    void updateStats(sf::Time t);
     void getInput();
     void draw();
 
@@ -28,9 +30,11 @@ private:
     sf::Color liveColor;
     sf::Color deadColor;
 
-    std::vector<sf::RectangleShape> cells;
+    //std::vector<sf::RectangleShape> cells;
     std::vector<bool> cellData;
     std::vector<bool> newCellData;
+
+    World world;
 
 
     sf::RenderWindow win;
@@ -39,4 +43,10 @@ private:
     sf::Clock perfClock;
     
     float cameraSpeed = 800;
+    float cyclesPerSecond = 2;
+    
+    //Stats stuff
+    sf::Time drawTime;
+    sf::Time statUpdateTime;
+    int frames; 
 };
