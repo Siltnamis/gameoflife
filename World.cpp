@@ -1,7 +1,10 @@
 #include "World.h"
 #include <iostream>
 
-World::World(int sizeX, int sizeY, int size)
+World::World(int sizeX, int sizeY, int size,
+        const sf::Color &lc, const sf::Color &dc):
+liveColor{lc},
+deadColor{dc}
 {
     vertices.resize(sizeX*sizeY*4);
     vertices.setPrimitiveType(sf::Quads);
@@ -17,10 +20,10 @@ World::World(int sizeX, int sizeY, int size)
             quad[2].position = sf::Vector2f(i*(size+1)+size, j*(size+1)+size);
             quad[3].position = sf::Vector2f(i*(size+1), j*(size+1)+size);
 
-            quad[0].color = sf::Color::Blue;
-            quad[1].color = sf::Color::Red;
-            quad[2].color = sf::Color::Green;
-            quad[3].color = sf::Color::White;
+            quad[0].color = deadColor;
+            quad[1].color = deadColor;
+            quad[2].color = deadColor;
+            quad[3].color = deadColor;
         }
     }
 }
@@ -36,8 +39,8 @@ void World::update(const std::vector<bool> &cellData)
 {
     for(int i = 0; i < cellData.size(); ++i)
     {
-        cellData[i] == true ? changeCellColor(i, sf::Color::Blue) :
-            changeCellColor(i, sf::Color::White);
+        cellData[i] == true ? changeCellColor(i, liveColor) :
+            changeCellColor(i, deadColor);
     } 
 }
 

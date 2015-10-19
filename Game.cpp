@@ -1,37 +1,14 @@
 #include "Game.h"
 
-Game::Game(int w, int h, int x, int y, int cSize, const sf::Color &oc,
+Game::Game(int w, int h, int x, int y, int cSize,
         const sf::Color &lc, const sf::Color &dc):
     dimX{x}, dimY{y},
     cellSize{cSize},
-    outlineColor{oc},
-    liveColor{lc},
-    deadColor{dc},
-    //cells(x*y),
     cellData(x*y, false),
     newCellData(x*y, false),
-    world{x, y},
-    win(sf::VideoMode(w, h), "Game of life"),
-    statUpdateTime{sf::Time::Zero},
-    frames{0}
+    world{x, y, cSize, lc, dc},
+    win(sf::VideoMode(w, h), "Game of life")
 {
-    //Create window
-    
-
-    //Place all squares and apply correct colors
-    /*
-    for(int i = 0; i < dimY; ++i)
-    {
-        for(int j = 0; j < dimX; ++j)
-        {
-            cells[i*dimX+j].setSize(sf::Vector2f(cellSize, cellSize));
-            cells[i*dimX+j].setPosition(j*cellSize, i*cellSize);
-            cells[i*dimX+j].setOutlineColor(outlineColor);
-            cells[i*dimX+j].setOutlineThickness(1);
-            cells[i*dimX+j].setFillColor(deadColor);
-        }
-    }
-    */
 }
 
 Game::~Game()
@@ -42,41 +19,20 @@ Game::~Game()
 void Game::run()
 {
     paused = true;
-    sf::Clock clock;
-    sf::Time timeSinceLastUpdate = sf::Time::Zero;
     sf::Time timePerFrame = sf::milliseconds(1000/60);
-
-    sf::Time updateTime; 
-    
+    sf::Clock c; 
+    sf::Time delta;
+    clock.restart(); 
     while(win.isOpen())
     {
-        sf::Time elapsedTime = clock.restart();
-        timeSinceLastUpdate += elapsedTime;
-        while(timeSinceLastUpdate > timePerFrame)
-        {
-            timeSinceLastUpdate -= timePerFrame;
-
-            getInput();
-            tick(timePerFrame);
-            updateStats(timePerFrame);
-        }
-        perfClock.restart();
+        c.restart();
+        getInput();
+        tick(timePerFrame);
         draw();
-        drawTime = perfClock.restart();
+        delta = timePerFrame - c.getElapsedTime();
+        if(delta > sf::Time::Zero)
+            sf::sleep(delta);
     } 
-}
-
-void Game::updateStats(sf::Time t)
-{
-    statUpdateTime += t;
-    frames++;
-    if(statUpdateTime >= sf::milliseconds(1000))
-    {
-        std::cout << "FPS: " << frames << " Draw time: " << 
-            drawTime.asMicroseconds() << " us" << '\n';
-        statUpdateTime -= sf::milliseconds(1000);
-        frames = 0;
-    }
 }
 
 void Game::getInput()
@@ -102,8 +58,6 @@ void Game::getInput()
                         {
                             cellData[ypos*dimX+xpos] = cellData[ypos*dimX+xpos] ^ true;
                         }
-                        //std::cout << liveNeighbourCount(101) << "\n";
-         
                     }
                     break;
 
@@ -117,12 +71,11 @@ void Game::getInput()
 
                     if(event.key.code == sf::Keyboard::E)
                     {
-                        //speed += 0.5;
+                        rate -= 10;
                     }
                     if(event.key.code == sf::Keyboard::Q)
                     {
-                        //if(speed > 1)
-                         //   speed -= 0.5;
+                         rate += 10;
                     }
                     if(event.key.code == sf::Keyboard::Escape)
                     {
@@ -145,45 +98,28 @@ void Game::getInput()
 
 void Game::tick(sf::Time t)
 {
-    if(sf::Keyboard::isKeyPressed(sf::Keyboard::W))
-    {
+    if(sf::Keyboard::isKeyPressed(sf::Keyboard::W)){
         view.move(0, -cameraSpeed*t.asSeconds());
     }
-    if(sf::Keyboard::isKeyPressed(sf::Keyboard::S))
-    {
+    if(sf::Keyboard::isKeyPressed(sf::Keyboard::S)){
         view.move(0, cameraSpeed*t.asSeconds());
     }
-    if(sf::Keyboard::isKeyPressed(sf::Keyboard::A))
-    {
+    if(sf::Keyboard::isKeyPressed(sf::Keyboard::A)){
         view.move(-cameraSpeed*t.asSeconds(), 0);
     }
-    if(sf::Keyboard::isKeyPressed(sf::Keyboard::D))
-    {
+    if(sf::Keyboard::isKeyPressed(sf::Keyboard::D)){
         view.move(cameraSpeed*t.asSeconds(), 0);
     }
     win.setView(view);
 
-    if(!paused)
+    if(!paused && clock.getElapsedTime().asMilliseconds() >= rate)
     {
-        perfClock.restart(); 
         getNewCellData();
-        std::cout << "GetNewCellData: " << perfClock.restart().asMicroseconds() <<
-            " us\n";
         cellData = newCellData;
+        clock.restart();
     }
-    perfClock.restart();
-    world.update(cellData);
-    //std::cout << "update world: " << perfClock.restart().asMicroseconds() << 
-    //    " us\n";
-}
 
-// Paint cells depending on cellData
-void Game::updateCells()
-{
-    for( int i = 0; i < cellData.size(); ++i)
-    {
-        //cellData[i] ? cells[i].setFillColor(liveColor) : cells[i].setFillColor(deadColor);        
-    } 
+    world.update(cellData);
 }
 
 // Advances cells by 1 generation
